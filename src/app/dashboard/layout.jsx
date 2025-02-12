@@ -4,25 +4,31 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
-function getCookie(name) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(";").shift();
-  return null;
-}
-
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const [userId, setUserId] = useState("");
 
   useEffect(() => {
-    const userCookie = getCookie("user");
-    if (userCookie) setUserId(userCookie);
+    // 클라이언트 환경에서만 실행되도록 보장
+    if (typeof document !== "undefined") {
+      function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(";").shift();
+        return null;
+      }
+
+      const userCookie = getCookie("user");
+      if (userCookie) setUserId(userCookie);
+    }
   }, []);
 
   const handleLogout = () => {
-    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    document.cookie = "user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    if (typeof document !== "undefined") {
+      document.cookie =
+        "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie = "user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    }
     router.push("/");
   };
 

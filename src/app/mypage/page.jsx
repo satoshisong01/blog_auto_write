@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 // 간단한 쿠키 파싱 함수: 쿠키에서 특정 이름의 값을 추출합니다.
 function getCookie(name) {
+  if (typeof document === "undefined") return null;
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return parts.pop().split(";").shift();
@@ -22,7 +23,7 @@ export default function MyPage() {
   // 관리자(admin)인 경우, 각 maker별 적립금 내역 (객체: { maker: sum })
   const [adminMoneyData, setAdminMoneyData] = useState({});
 
-  // 비밀번호 변경 핸들러 (기존)
+  // 비밀번호 변경 핸들러
   const handlePasswordChange = async (e) => {
     e.preventDefault();
 

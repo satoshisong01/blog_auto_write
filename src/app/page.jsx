@@ -1,13 +1,19 @@
-// src/app/page.js (로그인 페이지 예시)
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    // 클라이언트에서만 실행되도록 보장
+    if (typeof document !== "undefined") {
+      console.log("document is available");
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -22,9 +28,13 @@ export default function LoginPage() {
       if (res.ok) {
         const data = await res.json();
         console.log("로그인 성공:", data);
-        // 로그인 성공 시 쿠키를 설정합니다.
-        document.cookie = `user=${username}; path=/; samesite=strict`;
-        document.cookie = `token=loggedin; path=/; samesite=strict`;
+
+        // 클라이언트에서만 실행되도록 보장
+        if (typeof document !== "undefined") {
+          document.cookie = `user=${username}; path=/; samesite=strict`;
+          document.cookie = `token=loggedin; path=/; samesite=strict`;
+        }
+
         router.push("/dashboard");
       } else {
         const errorData = await res.json();

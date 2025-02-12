@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 // 간단한 쿠키 파싱 함수: 쿠키에서 특정 이름의 값을 추출합니다.
 function getCookie(name) {
+  if (typeof document === "undefined") return null;
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return parts.pop().split(";").shift();
@@ -82,7 +83,7 @@ export default function DashboardPage() {
       if (res.ok) {
         const data = await res.json();
         alert("등록 성공!");
-        // 필요 시, 폼 초기화 처리 (예: 주석 해제)
+        // 필요 시, 폼 초기화 처리 (예: 아래 주석 해제)
         // setEntries([{ id: 1, naverId: "", naverPW: "", is_realname: true }]);
         // 등록 후 데이터 리스트 새로고침
         fetchRegistrations();
