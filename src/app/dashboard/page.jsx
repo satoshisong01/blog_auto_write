@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import * as XLSX from "xlsx";
 
 // 간단한 쿠키 파싱 함수: 쿠키에서 특정 이름의 값을 추출합니다.
 function getCookie(name) {
@@ -34,7 +35,7 @@ export default function DashboardPage() {
     );
   };
 
-  // 새 행 추가 핸들러
+  // 새 행 추가 핸들러 (수동 입력용)
   const addEntry = () => {
     const newId = entries.length ? entries[entries.length - 1].id + 1 : 1;
     setEntries((prev) => [
@@ -47,6 +48,50 @@ export default function DashboardPage() {
   const removeEntry = (id) => {
     if (entries.length === 1) return;
     setEntries((prev) => prev.filter((entry) => entry.id !== id));
+  };
+
+  // 전체 실명/비실명 설정 핸들러
+  const setAllReal = (value) => {
+    setEntries((prev) =>
+      prev.map((entry) => ({
+        ...entry,
+        is_realname: value,
+      }))
+    );
+  };
+
+  // 엑셀 파일 업로드 핸들러
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const data = evt.target.result;
+      try {
+        const workbook = XLSX.read(data, { type: "array" });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        // header: 1 옵션을 사용하면 각 행이 배열로 반환됩니다.
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        // 최소 2개 이상의 셀이 있는 행만 필터링 후 파싱 (A열: 네이버 아이디, B열: 네이버 비밀번호)
+        const parsedEntries = jsonData
+          .filter((row) => row && row.length >= 2)
+          .map((row, index) => ({
+            id: Date.now() + index, // 간단한 고유 id 생성
+            naverId: row[0] ? row[0].toString() : "",
+            naverPW: row[1] ? row[1].toString() : "",
+            is_realname: true, // 기본값은 실명(true)
+          }));
+        if (parsedEntries.length > 0) {
+          setEntries(parsedEntries);
+        } else {
+          setErrorMessage("엑셀 파일에서 유효한 데이터가 없습니다.");
+        }
+      } catch (error) {
+        console.error("엑셀 파일 파싱 에러:", error);
+        setErrorMessage("엑셀 파일 파싱 중 오류가 발생했습니다.");
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   // 폼 제출 핸들러: 모든 입력값을 검증한 후 API로 등록 요청을 보냅니다.
@@ -162,6 +207,29 @@ export default function DashboardPage() {
         {errorMessage && (
           <p style={{ color: "red", fontSize: "0.9em" }}>{errorMessage}</p>
         )}
+        {/* 엑셀파일 업로드 및 전체 실명/비실명 버튼 섹션 */}
+        <div
+          style={{
+            marginBottom: "1rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem",
+          }}
+        >
+          <label htmlFor="excelFile">엑셀파일 업로드: </label>
+          <input
+            type="file"
+            id="excelFile"
+            accept=".xlsx, .xls"
+            onChange={handleFileUpload}
+          />
+          <button type="button" onClick={() => setAllReal(true)}>
+            전체실명
+          </button>
+          <button type="button" onClick={() => setAllReal(false)}>
+            전체비실명
+          </button>
+        </div>
         <form onSubmit={handleSubmit}>
           <table>
             <thead>
