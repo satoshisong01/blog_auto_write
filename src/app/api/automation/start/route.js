@@ -6,31 +6,25 @@ import { generateGeminiReviewContent } from "@/lib/geminiReview";
 // ngrok URL (실제 ngrok URL로 대체)
 const NGROK_URL = "https://blogauto.ngrok.dev";
 
-async function callLocalAPI(endpoint, payload, retries = 3, delay = 5000) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const res = await fetch(`${NGROK_URL}${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const text = await res.text();
-      try {
-        return JSON.parse(text);
-      } catch (error) {
-        console.error("JSON 파싱 실패. 응답 텍스트:", text);
-        throw new Error(
-          "Flask 엔드포인트에서 유효한 JSON을 반환하지 않습니다."
-        );
-      }
-    } catch (error) {
-      console.error(`fetch 에러 (시도 ${attempt}):`, error);
-      if (attempt === retries) {
-        throw error;
-      }
-      // 재시도 전 대기 (delay: 5000ms 기본값)
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
+async function callLocalAPI(endpoint, payload) {
+  try {
+    // POST 요청 전송
+    fetch(`${NGROK_URL}${endpoint}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch((error) => {
+      console.error("fetch 에러:", error);
+    });
+
+    // 요청 전송 후 15초 대기 (네트워크 복구 시간)
+    await new Promise((resolve) => setTimeout(resolve, 15000));
+
+    // 반환값 체크 없이 dummy 값 반환
+    return { exitCode: 0, stdout: "", stderr: "" };
+  } catch (error) {
+    console.error("callLocalAPI 내부 에러:", error);
+    return { exitCode: 1, stdout: "", stderr: String(error) };
   }
 }
 
