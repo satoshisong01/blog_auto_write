@@ -204,7 +204,7 @@ export default function PlaceKeywordManagePage() {
       >
         <h2>새 항목 추가</h2>
         <div className="form-group">
-          <label>플레이스 링크:</label>
+          <label>플레이스 명:</label>
           <input
             type="text"
             value={newPlaceLink}
@@ -264,7 +264,7 @@ export default function PlaceKeywordManagePage() {
           <thead>
             <tr>
               <th>ID</th>
-              <th>플레이스 링크</th>
+              <th>플레이스 명</th>
               <th>키워드</th>
               <th>카운트</th>
               <th>폴더 경로</th>

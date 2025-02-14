@@ -159,7 +159,7 @@ export default function StartPage() {
             <thead>
               <tr>
                 <th>ID</th>
-                <th>플레이스 링크</th>
+                <th>플레이스 명</th>
                 <th>키워드</th>
                 <th>카운트현황</th>
                 <th>작업일수현황</th>
@@ -185,7 +185,7 @@ export default function StartPage() {
             <thead>
               <tr>
                 <th>ID</th>
-                <th>플레이스 링크</th>
+                <th>플레이스 명</th>
                 <th>키워드</th>
                 <th>카운트현황</th>
                 <th>작업일수현황</th>

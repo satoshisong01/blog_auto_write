@@ -24,7 +24,7 @@ export const generateGeminiReviewContent = async (placeLink, keyword) => {
    토큰을 그대로 출력하지 말고, 글에 포함시키지 마.
 
 3) 링크와 키워드도 자연스럽게 넣되, 너무 짧지 않게 작성해줘.
-   - 플레이스 링크: ${placeLink}
+   - 플레이스 명: ${placeLink}
    - 키워드: ${keyword}
 
 [RANDOM_TOKEN: ${randomSuffix}]

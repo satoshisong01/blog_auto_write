@@ -123,7 +123,7 @@ export default function NoticeBoardPage() {
               ))}
             </select>
             {/* 플레이스 링크 필터 드롭다운 */}
-            <label style={{ margin: "0 0.5rem" }}>플레이스 링크:</label>
+            <label style={{ margin: "0 0.5rem" }}>플레이스 명:</label>
             <select
               value={placeFilter}
               onChange={(e) => setPlaceFilter(e.target.value)}
@@ -157,7 +157,7 @@ export default function NoticeBoardPage() {
                   <th>ID</th>
                   <th>네이버 아이디</th>
                   <th>블로그 주소</th>
-                  <th>플레이스 링크</th>
+                  <th>플레이스 명</th>
                   <th>사용된 키워드</th>
                   <th>날짜</th>
                 </tr>
