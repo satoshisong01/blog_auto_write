@@ -49,6 +49,9 @@ export async function POST(request) {
 
     const results = []; // 모든 작업 결과 저장 배열
 
+    // availableAccounts: 전역적으로 사용 가능한 계정 목록 (한 사이클 내 중복 사용 방지)
+    let availableAccounts = [...regRows];
+
     // (3) 각 place_keywords 레코드에 대해 작업 수행
     for (const record of kwRows) {
       const { id, place_link, keyword, count, folder_path, work_day } = record;
@@ -62,7 +65,7 @@ export async function POST(request) {
         continue;
       }
 
-      // 작업 사이클 시작 (즉, working이 0이면 바로 시작)
+      // 작업 사이클 시작 (working이 0이면 바로 시작)
       await pool.query(
         "UPDATE place_keywords SET working = 1, working_day = NOW(), current_count = 0 WHERE id = ?",
         [id]
@@ -71,18 +74,23 @@ export async function POST(request) {
       record.working_day = now;
       record.current_count = 0;
 
-      const targetAccounts = Math.min(regRows.length, parseInt(count, 10));
-      const remainingAccounts = targetAccounts - (record.current_count || 0);
-      if (remainingAccounts <= 0) {
-        console.log(
-          `레코드 ${id}는 이미 목표 계정 수 만큼 작업이 완료되었습니다.`
-        );
+      // 업체별 목표 계정 수 = record.count (정수)
+      const targetAccounts = Math.min(
+        availableAccounts.length,
+        parseInt(count, 10)
+      );
+      if (targetAccounts <= 0) {
+        console.log(`레코드 ${id}는 할당할 계정이 부족합니다.`);
         continue;
       }
+      // 선택된 계정: availableAccounts 배열의 앞에서 targetAccounts개를 선택
+      const selectedAccounts = availableAccounts.slice(0, targetAccounts);
+      // 제거하여 다른 업체에서는 중복 사용되지 않도록 함
+      availableAccounts.splice(0, targetAccounts);
 
-      // (4) 각 계정에 대해 작업 실행
-      for (let i = 0; i < remainingAccounts; i++) {
-        const { naver_id, naver_pw, is_realname } = regRows[i];
+      // (4) 각 선택된 계정에 대해 작업 실행
+      for (const account of selectedAccounts) {
+        const { naver_id, naver_pw, is_realname } = account;
         console.log(`레코드 ${id}: 계정 ${naver_id} 작업 시작...`);
 
         // 비실명 계정일 경우 flymode 먼저 실행
@@ -143,7 +151,7 @@ export async function POST(request) {
       }
     }
 
-    // (5) 작업일수 계산 및 종료 처리
+    // (5) 각 레코드에 대해 작업일수 계산 및 종료 처리
     for (const record of kwRows) {
       if (record.working === 1 && record.working_day) {
         const startDate = new Date(record.working_day);
