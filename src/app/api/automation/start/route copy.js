@@ -100,8 +100,6 @@ export async function POST(request) {
             naver_pw,
           });
           console.log(`[FLYMODE] 계정 ${naver_id} 결과:`, flyResponse);
-
-          await new Promise((resolve) => setTimeout(resolve, 15000));
         }
 
         // AI 리뷰 생성
