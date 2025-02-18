@@ -7,24 +7,17 @@ import { generateGeminiReviewContent } from "@/lib/geminiReview";
 const NGROK_URL = "https://blogauto.ngrok.dev";
 
 async function callLocalAPI(endpoint, payload) {
+  const res = await fetch(`${NGROK_URL}${endpoint}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const text = await res.text();
   try {
-    // POST 요청 전송
-    fetch(`${NGROK_URL}${endpoint}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).catch((error) => {
-      console.error("fetch 에러:", error);
-    });
-
-    // 요청 전송 후 15초 대기 (네트워크 복구 시간)
-    await new Promise((resolve) => setTimeout(resolve, 15000));
-
-    // 반환값 체크 없이 dummy 값 반환
-    return { exitCode: 0, stdout: "", stderr: "" };
+    return JSON.parse(text);
   } catch (error) {
-    console.error("callLocalAPI 내부 에러:", error);
-    return { exitCode: 1, stdout: "", stderr: String(error) };
+    console.error("JSON 파싱 실패. 응답 텍스트:", text);
+    throw new Error("Flask 엔드포인트에서 유효한 JSON을 반환하지 않습니다.");
   }
 }
 
@@ -100,15 +93,19 @@ export async function POST(request) {
         const { naver_id, naver_pw, is_realname } = account;
         console.log(`레코드 ${id}: 계정 ${naver_id} 작업 시작...`);
 
-        // 비실명 계정일 경우 flymode 먼저 실행
+        // 비실명 계정일 경우 flymode 먼저 실행 (오류 발생 시 무시하고 10초 대기)
         if (!is_realname) {
-          const flyResponse = await callLocalAPI("/run-flymode", {
-            naver_id,
-            naver_pw,
-          });
-          console.log(`[FLYMODE] 계정 ${naver_id} 결과:`, flyResponse);
-
-          await new Promise((resolve) => setTimeout(resolve, 15000));
+          try {
+            const flyResponse = await callLocalAPI("/run-flymode", {
+              naver_id,
+              naver_pw,
+            });
+            console.log(`[FLYMODE] 계정 ${naver_id} 결과:`, flyResponse);
+          } catch (error) {
+            console.error(`[FLYMODE] 계정 ${naver_id} 에러 무시:`, error);
+          }
+          // flymode 호출 후 10초 대기 (네트워크 복구 시간)
+          await new Promise((resolve) => setTimeout(resolve, 10000));
         }
 
         // AI 리뷰 생성
