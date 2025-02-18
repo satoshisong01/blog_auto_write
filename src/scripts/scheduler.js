@@ -8,7 +8,8 @@ const AUTOMATION_API_URL = "http://3.34.144.172:3000/api/automation/start";
 
 // 서버가 UTC 기준이라면, 한국 시간 오전 10시는 UTC 오전 1시이므로,
 // 크론 표현식을 "0 1 * * *"로 설정합니다.
-cron.schedule("0 2 15 * *", async () => {
+cron.schedule("20 4 * * *", async () => {
+  console.log("1분마다 실행됩니다.", new Date());
   console.log("스케줄러 실행: 자동화 작업을 시작합니다.");
   try {
     const res = await fetch(AUTOMATION_API_URL, {
@@ -27,5 +28,4 @@ cron.schedule("0 2 15 * *", async () => {
     console.error("자동화 작업 중 네트워크 오류 발생:", error);
   }
 });
-
-console.log("Scheduler started. Waiting for scheduled tasks...");
+console.log("테스트 스케줄러 시작됨. CWD:", process.cwd());

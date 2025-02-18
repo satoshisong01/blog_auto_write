@@ -52,7 +52,7 @@ export async function POST(request) {
     // availableAccounts: 한 사이클 내 중복 사용을 막기 위해 사용 가능한 계정 목록
     let availableAccounts = [...regRows];
 
-    // (3) 각 레코드에 대해 작업 수행
+    // (3) 각 레코드(업체)에 대해 작업 수행
     for (const record of kwRows) {
       const {
         id,
@@ -113,6 +113,19 @@ export async function POST(request) {
       // (4) 선택된 각 계정에 대해 작업 실행
       for (const account of selectedAccounts) {
         const { naver_id, naver_pw, is_realname } = account;
+
+        // 추가 조건: 해당 계정이 지난 10일 내에 이미 해당 place_link(업체)에 대해 글을 작성했는지 확인
+        const [dashboardRows] = await pool.query(
+          "SELECT id FROM dashboard WHERE naver_id = ? AND place_name = ? AND created_at > DATE_SUB(NOW(), INTERVAL 10 DAY)",
+          [naver_id, place_link]
+        );
+        if (dashboardRows && dashboardRows.length > 0) {
+          console.log(
+            `계정 ${naver_id}은/는 최근 10일 내에 ${place_link}에 글을 작성했으므로 건너뜁니다.`
+          );
+          continue; // 이 계정은 사용하지 않음
+        }
+
         console.log(`레코드 ${id}: 계정 ${naver_id} 작업 시작...`);
 
         // 비실명 계정의 경우 flymode 실행 (오류 발생 시 무시) 후 10초 대기
@@ -200,9 +213,7 @@ export async function POST(request) {
 
     return new Response(
       JSON.stringify({ message: "모든 작업 완료", results }),
-      {
-        status: 200,
-      }
+      { status: 200 }
     );
   } catch (error) {
     console.error("자동화 API 에러:", error);
