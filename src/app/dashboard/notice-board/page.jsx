@@ -83,7 +83,7 @@ export default function NoticeBoardPage() {
 
   return (
     <div className="container" style={{ padding: "2rem", maxWidth: "1500px" }}>
-      <h1>Notice Board</h1>
+      <h1>대시보드 현황</h1>
       {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
       {loading ? (
         <p>데이터 로드 중...</p>

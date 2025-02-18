@@ -58,38 +58,37 @@ export async function POST(request) {
         id,
         place_link,
         keyword,
-        count, // 목표 글 수
+        count,
         folder_path,
-        work_day, // 작업 가능 일수
+        work_day,
         working,
         working_day,
-        current_count: dbCurrentCount,
       } = record;
 
-      // 이미 진행 중인 경우 작업일수를 확인
+      // 만약 이미 작업 중이라면, 남은 작업일수가 있는지 확인
       if (working === 1) {
         if (working_day) {
           const startDate = new Date(working_day);
           const diffDays =
             Math.floor((now - startDate) / (1000 * 60 * 60 * 24)) + 1;
-          console.log(`레코드 ${id} 작업일 진행: ${diffDays}/${work_day}`);
-          // work_day 동안은 작업 진행, 초과하면 작업 종료 처리
-          if (diffDays > work_day) {
+          if (diffDays >= work_day) {
             console.log(
-              `레코드 ${id}의 작업일수가 완료되었습니다. 해당 레코드는 reset됩니다.`
-            );
-            await pool.query(
-              "UPDATE place_keywords SET working = 0, current_count = 0, work_day = 0, count = 0 WHERE id = ?",
-              [id]
+              `레코드 ${id}의 작업일수가 완료되었습니다. 스킵합니다.`
             );
             continue;
+          } else {
+            console.log(
+              `레코드 ${id}는 이미 진행 중이나, 아직 ${
+                work_day - diffDays
+              }일 남았습니다.`
+            );
           }
         } else {
           console.log(`레코드 ${id}의 working_day 정보가 없어 스킵합니다.`);
           continue;
         }
       } else {
-        // 아직 작업이 시작되지 않은 경우 (최초 실행)
+        // 아직 작업이 시작되지 않은 경우, working 플래그와 시작일시 업데이트
         await pool.query(
           "UPDATE place_keywords SET working = 1, working_day = NOW(), current_count = 0 WHERE id = ?",
           [id]
@@ -99,26 +98,32 @@ export async function POST(request) {
         record.current_count = 0;
       }
 
-      // 남은 작업 수 = 목표 수(count) - 현재 DB에 기록된 current_count
-      let remainingPosts = parseInt(count, 10) - (dbCurrentCount || 0);
-      console.log(`레코드 ${id}의 남은 작업 수: ${remainingPosts}`);
+      // 업체별 목표 계정 수 (record.count)만큼 작업할 계정 선택
+      const targetAccounts = Math.min(
+        availableAccounts.length,
+        parseInt(count, 10)
+      );
+      if (targetAccounts <= 0) {
+        console.log(`레코드 ${id}는 할당할 계정이 부족합니다.`);
+        continue;
+      }
+      const selectedAccounts = availableAccounts.slice(0, targetAccounts);
+      availableAccounts.splice(0, targetAccounts);
 
-      // (4) 남은 작업 수만큼, 사용 가능한 계정 중 최근 10일 내 작업하지 않은 계정을 순차적으로 선택하여 시도
-      while (remainingPosts > 0 && availableAccounts.length > 0) {
-        // availableAccounts에서 순차적으로 한 계정을 꺼냅니다.
-        const account = availableAccounts.shift();
+      // (4) 선택된 각 계정에 대해 작업 실행
+      for (const account of selectedAccounts) {
         const { naver_id, naver_pw, is_realname } = account;
 
-        // 해당 계정이 지난 10일 내에 이미 해당 업체(place_link)에 대해 글을 작성했는지 확인
+        // 추가 조건: 해당 계정이 지난 10일 내에 이미 해당 place_link(업체)에 대해 글을 작성했는지 확인
         const [dashboardRows] = await pool.query(
           "SELECT id FROM dashboard WHERE naver_id = ? AND place_name = ? AND created_at > DATE_SUB(NOW(), INTERVAL 10 DAY)",
           [naver_id, place_link]
         );
         if (dashboardRows && dashboardRows.length > 0) {
           console.log(
-            `계정 ${naver_id}은/는 최근 10일 내에 ${place_link}에 글 작성했으므로 건너뜁니다.`
+            `계정 ${naver_id}은/는 최근 10일 내에 ${place_link}에 글을 작성했으므로 건너뜁니다.`
           );
-          continue; // 이 계정은 사용하지 않고 다음 계정 시도
+          continue; // 이 계정은 사용하지 않음
         }
 
         console.log(`레코드 ${id}: 계정 ${naver_id} 작업 시작...`);
@@ -168,7 +173,6 @@ export async function POST(request) {
         });
 
         if (postResponse.exitCode === 0) {
-          // 글 작성 및 dashboard 업데이트 모두 성공한 경우
           await pool.query(
             "UPDATE registrations SET post_count = post_count + 1, money_count = money_count + 500 WHERE naver_id = ?",
             [naver_id]
@@ -177,20 +181,16 @@ export async function POST(request) {
             "UPDATE place_keywords SET current_count = current_count + 1 WHERE id = ?",
             [id]
           );
-          remainingPosts--;
-          console.log(
-            `레코드 ${id}: 계정 ${naver_id} 작업 완료 (성공). 남은 작업 수: ${remainingPosts}`
-          );
+          console.log(`레코드 ${id}: 계정 ${naver_id} 작업 완료 (성공)`);
         } else {
           console.error(
             `레코드 ${id}: 계정 ${naver_id} 작업 오류: ${postResponse.stderr}`
           );
-          // 실패한 경우 remainingPosts는 그대로 남아, 다음 사용 가능한 계정이 시도됩니다.
         }
       }
-    } // end for each record
+    }
 
-    // (5) 각 레코드의 작업일수를 확인하여, 작업일수가 초과되었으면 해당 레코드를 reset
+    // (5) 각 레코드의 작업일수를 계산하여, 작업일수가 완료되었으면 working 플래그를 0으로 재설정
     for (const record of kwRows) {
       if (record.working === 1 && record.working_day) {
         const startDate = new Date(record.working_day);
@@ -199,12 +199,12 @@ export async function POST(request) {
         console.log(
           `레코드 ${record.id} 작업일 진행: ${diffDays}/${record.work_day}`
         );
-        if (diffDays > record.work_day) {
+        if (diffDays >= record.work_day) {
           console.log(
-            `레코드 ${record.id}의 작업일수가 완료되었습니다. 해당 레코드는 reset됩니다.`
+            `레코드 ${record.id}의 작업일수가 완료되었습니다. 다음날 작업을 위해 working을 0으로 설정합니다.`
           );
           await pool.query(
-            "UPDATE place_keywords SET working = 0, current_count = 0, work_day = 0, count = 0 WHERE id = ?",
+            "UPDATE place_keywords SET working = 0, current_count = 0 WHERE id = ?",
             [record.id]
           );
         }
