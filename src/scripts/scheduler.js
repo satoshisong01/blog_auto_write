@@ -4,13 +4,11 @@ const fetch = require("node-fetch");
 
 // 환경 변수 AUTOMATION_API_URL이 설정되어 있으면 그 값을 사용하고,
 // 없으면 기본값으로 로컬 URL 사용
-const AUTOMATION_API_URL =
-  process.env.AUTOMATION_API_URL ||
-  "http://localhost:3001/api/automation/start";
+const AUTOMATION_API_URL = "http://3.34.144.172:3000/api/automation/start";
 
 // 서버가 UTC 기준이라면, 한국 시간 오전 10시는 UTC 오전 1시이므로,
 // 크론 표현식을 "0 1 * * *"로 설정합니다.
-cron.schedule("0 11 27 * *", async () => {
+cron.schedule("0 2 15 * *", async () => {
   console.log("스케줄러 실행: 자동화 작업을 시작합니다.");
   try {
     const res = await fetch(AUTOMATION_API_URL, {
