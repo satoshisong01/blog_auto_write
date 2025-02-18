@@ -10,7 +10,7 @@ const AUTOMATION_API_URL =
 
 // 서버가 UTC 기준이라면, 한국 시간 오전 10시는 UTC 오전 1시이므로,
 // 크론 표현식을 "0 1 * * *"로 설정합니다.
-cron.schedule("0 1 * * *", async () => {
+cron.schedule("0 1 10 * *", async () => {
   console.log("스케줄러 실행: 자동화 작업을 시작합니다.");
   try {
     const res = await fetch(AUTOMATION_API_URL, {
