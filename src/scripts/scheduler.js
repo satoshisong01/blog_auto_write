@@ -3,19 +3,19 @@ const cron = require("node-cron");
 const fetch = require("node-fetch");
 
 // 환경 변수 AUTOMATION_API_URL이 설정되어 있으면 그 값을 사용하고,
-// 없으면 기본값으로 로컬 개발 서버 URL을 사용합니다.
+// 없으면 기본값으로 로컬 URL 사용
 const AUTOMATION_API_URL =
   process.env.AUTOMATION_API_URL ||
   "http://localhost:3000/api/automation/start";
 
-// 매일 오전 10시에 작업을 실행하도록 스케줄러 설정 (cron 표현식: "0 10 * * *")
-cron.schedule("0 11 * * *", async () => {
+// 서버가 UTC 기준이라면, 한국 시간 오전 10시는 UTC 오전 1시이므로,
+// 크론 표현식을 "0 1 * * *"로 설정합니다.
+cron.schedule("0 1 * * *", async () => {
   console.log("스케줄러 실행: 자동화 작업을 시작합니다.");
   try {
     const res = await fetch(AUTOMATION_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      // 필요에 따라 필터 옵션 등 추가 (예: 전체/실명/비실명)
       body: JSON.stringify({ filter: "전체" }),
     });
     if (res.ok) {
@@ -30,5 +30,4 @@ cron.schedule("0 11 * * *", async () => {
   }
 });
 
-// 스케줄러가 실행 중임을 알림
 console.log("Scheduler started. Waiting for scheduled tasks...");
