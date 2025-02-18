@@ -1,6 +1,6 @@
 const cron = require("node-cron");
 
-cron.schedule("* 1 55 * *", () => {
+cron.schedule("* 2 10 * *", () => {
   console.log("1분마다 실행됩니다.", new Date());
 });
 
