@@ -27,7 +27,7 @@ export async function POST(request) {
 
     // (1) place_keywords 테이블에서 모든 레코드를 가져옴
     const [kwRows] = await pool.query(
-      "SELECT id, place_link, keyword, count, folder_path, work_day, working, working_day, current_count FROM place_keywords"
+      "SELECT id, place_link, keyword, count, folder_path, work_day, working, working_day, current_count, created_at FROM place_keywords"
     );
     if (!kwRows || kwRows.length === 0) {
       return new Response(
@@ -49,32 +49,56 @@ export async function POST(request) {
 
     const results = []; // 모든 작업 결과 저장 배열
 
-    // availableAccounts: 전역적으로 사용 가능한 계정 목록 (한 사이클 내 중복 사용 방지)
+    // availableAccounts: 한 사이클 내 중복 사용을 막기 위해 사용 가능한 계정 목록
     let availableAccounts = [...regRows];
 
-    // (3) 각 place_keywords 레코드에 대해 작업 수행
+    // (3) 각 레코드에 대해 작업 수행
     for (const record of kwRows) {
-      const { id, place_link, keyword, count, folder_path, work_day } = record;
-      const todayStr = now.toISOString().split("T")[0];
-      const recordStartStr = record.working_day
-        ? new Date(record.working_day).toISOString().split("T")[0]
-        : null;
+      const {
+        id,
+        place_link,
+        keyword,
+        count,
+        folder_path,
+        work_day,
+        working,
+        working_day,
+      } = record;
 
-      if (record.working === 1) {
-        console.log(`레코드 ${id}는 이미 작업 중입니다. 스킵합니다.`);
-        continue;
+      // 만약 이미 작업 중이라면, 남은 작업일수가 있는지 확인
+      if (working === 1) {
+        if (working_day) {
+          const startDate = new Date(working_day);
+          const diffDays =
+            Math.floor((now - startDate) / (1000 * 60 * 60 * 24)) + 1;
+          if (diffDays >= work_day) {
+            console.log(
+              `레코드 ${id}의 작업일수가 완료되었습니다. 스킵합니다.`
+            );
+            continue;
+          } else {
+            console.log(
+              `레코드 ${id}는 이미 진행 중이나, 아직 ${
+                work_day - diffDays
+              }일 남았습니다.`
+            );
+          }
+        } else {
+          console.log(`레코드 ${id}의 working_day 정보가 없어 스킵합니다.`);
+          continue;
+        }
+      } else {
+        // 아직 작업이 시작되지 않은 경우, working 플래그와 시작일시 업데이트
+        await pool.query(
+          "UPDATE place_keywords SET working = 1, working_day = NOW(), current_count = 0 WHERE id = ?",
+          [id]
+        );
+        record.working = 1;
+        record.working_day = now;
+        record.current_count = 0;
       }
 
-      // 작업 사이클 시작 (working이 0이면 바로 시작)
-      await pool.query(
-        "UPDATE place_keywords SET working = 1, working_day = NOW(), current_count = 0 WHERE id = ?",
-        [id]
-      );
-      record.working = 1;
-      record.working_day = now;
-      record.current_count = 0;
-
-      // 업체별 목표 계정 수 = record.count (정수)
+      // 업체별 목표 계정 수 (record.count)만큼 작업할 계정 선택
       const targetAccounts = Math.min(
         availableAccounts.length,
         parseInt(count, 10)
@@ -83,17 +107,15 @@ export async function POST(request) {
         console.log(`레코드 ${id}는 할당할 계정이 부족합니다.`);
         continue;
       }
-      // 선택된 계정: availableAccounts 배열의 앞에서 targetAccounts개를 선택
       const selectedAccounts = availableAccounts.slice(0, targetAccounts);
-      // 제거하여 다른 업체에서는 중복 사용되지 않도록 함
       availableAccounts.splice(0, targetAccounts);
 
-      // (4) 각 선택된 계정에 대해 작업 실행
+      // (4) 선택된 각 계정에 대해 작업 실행
       for (const account of selectedAccounts) {
         const { naver_id, naver_pw, is_realname } = account;
         console.log(`레코드 ${id}: 계정 ${naver_id} 작업 시작...`);
 
-        // 비실명 계정일 경우 flymode 먼저 실행 (오류 발생 시 무시하고 10초 대기)
+        // 비실명 계정의 경우 flymode 실행 (오류 발생 시 무시) 후 10초 대기
         if (!is_realname) {
           try {
             const flyResponse = await callLocalAPI("/run-flymode", {
@@ -104,7 +126,6 @@ export async function POST(request) {
           } catch (error) {
             console.error(`[FLYMODE] 계정 ${naver_id} 에러 무시:`, error);
           }
-          // flymode 호출 후 10초 대기 (네트워크 복구 시간)
           await new Promise((resolve) => setTimeout(resolve, 10000));
         }
 
@@ -121,7 +142,6 @@ export async function POST(request) {
         const safeFolderPath = folder_path
           ? folder_path.replace(/\\/g, "/")
           : "";
-        // used_keyword를 keyword 값으로 설정
         const used_keyword = keyword;
 
         const postResponse = await callLocalAPI("/run-post", {
@@ -157,7 +177,7 @@ export async function POST(request) {
       }
     }
 
-    // (5) 각 레코드에 대해 작업일수 계산 및 종료 처리
+    // (5) 각 레코드의 작업일수를 계산하여, 작업일수가 완료되었으면 working 플래그를 0으로 재설정
     for (const record of kwRows) {
       if (record.working === 1 && record.working_day) {
         const startDate = new Date(record.working_day);
@@ -180,7 +200,9 @@ export async function POST(request) {
 
     return new Response(
       JSON.stringify({ message: "모든 작업 완료", results }),
-      { status: 200 }
+      {
+        status: 200,
+      }
     );
   } catch (error) {
     console.error("자동화 API 에러:", error);
