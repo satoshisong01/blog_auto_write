@@ -102,9 +102,9 @@ export default function StartPage() {
 
   return (
     <div className="container" style={{ padding: "2rem" }}>
-      <h1>시작 페이지</h1>
-      {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
-      {/* 필터 옵션 라디오 버튼 그룹 */}
+      <h1>작업 테이블 현황</h1>
+      {/* {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
+      필터 옵션 라디오 버튼 그룹
       <div style={{ marginBottom: "1rem" }}>
         <label style={{ marginRight: "1rem" }}>
           <input
@@ -143,7 +143,7 @@ export default function StartPage() {
         <button className="btn" onClick={handleStart}>
           시작
         </button>
-      )}
+      )} */}
 
       <div style={{ marginTop: "2rem" }}>
         <h2>진행중인 테이블</h2>

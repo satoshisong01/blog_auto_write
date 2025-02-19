@@ -93,7 +93,7 @@ export default function DashboardLayout({ children }) {
                       fontWeight: "bold",
                     }}
                   >
-                    시작
+                    작업 테이블 현황
                   </Link>
                 </li>
               </>
