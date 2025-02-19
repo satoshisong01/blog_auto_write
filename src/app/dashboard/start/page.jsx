@@ -79,15 +79,18 @@ export default function StartPage() {
       const countStatus = `${record.current_count || 0}/${record.count}`;
 
       // 작업일수 현황:
-      // - 작업이 완료된 경우(현재 작업수 >= 목표 작업수)는 work_day 그대로 표시 (예: 2/2)
-      // - 아직 완료되지 않은 경우에는 무조건 1/{work_day}로 표시 (예: 1/2)
+      // 만약 작업 중이면, 현재 날짜와 working_day의 차이를 계산하여,
+      // 그 차이가 work_day보다 크면 work_day, 그렇지 않으면 diffDays를 표시
       let workDayStatus = `0/${record.work_day}`;
       if (record.working === 1 && record.working_day) {
-        if (record.current_count >= record.count) {
-          workDayStatus = `${record.work_day}/${record.work_day}`;
-        } else {
-          workDayStatus = `1/${record.work_day}`;
+        const now = new Date();
+        const startDate = new Date(record.working_day);
+        let diffDays =
+          Math.floor((now - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        if (diffDays > record.work_day) {
+          diffDays = record.work_day;
         }
+        workDayStatus = `${diffDays}/${record.work_day}`;
       }
 
       return (
@@ -105,7 +108,47 @@ export default function StartPage() {
   return (
     <div className="container" style={{ padding: "2rem" }}>
       <h1>작업 테이블 현황</h1>
-      {/* 에러 메시지, 필터 옵션 및 시작 버튼 관련 UI는 필요에 따라 사용하세요. */}
+      {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
+      {/* 필터 옵션 및 시작 버튼 UI */}
+      <div style={{ marginBottom: "1rem" }}>
+        <label style={{ marginRight: "1rem" }}>
+          <input
+            type="radio"
+            name="filter"
+            value="전체"
+            checked={selectedFilter === "전체"}
+            onChange={() => setSelectedFilter("전체")}
+          />
+          전체
+        </label>
+        <label style={{ marginRight: "1rem" }}>
+          <input
+            type="radio"
+            name="filter"
+            value="실명"
+            checked={selectedFilter === "실명"}
+            onChange={() => setSelectedFilter("실명")}
+          />
+          실명
+        </label>
+        <label>
+          <input
+            type="radio"
+            name="filter"
+            value="비실명"
+            checked={selectedFilter === "비실명"}
+            onChange={() => setSelectedFilter("비실명")}
+          />
+          비실명
+        </label>
+      </div>
+      {loading ? (
+        <p>작업 진행 중...</p>
+      ) : (
+        <button className="btn" onClick={handleStart}>
+          시작
+        </button>
+      )}
 
       <div style={{ marginTop: "2rem" }}>
         <h2>진행중인 테이블</h2>
