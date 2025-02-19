@@ -9,7 +9,7 @@ export default function StartPage() {
   // 필터 옵션: "전체", "실명", "비실명" (기본값 "전체")
   const [selectedFilter, setSelectedFilter] = useState("전체");
 
-  // 기존 fetchPlaceKeywords 함수: API에서 데이터를 불러와 상태에 저장
+  // API에서 데이터를 불러와 상태에 저장하는 함수
   const fetchPlaceKeywords = async () => {
     try {
       const res = await fetch("/api/place_keywords/fetch", {
@@ -33,8 +33,7 @@ export default function StartPage() {
     fetchPlaceKeywords();
   }, []);
 
-  // "시작" 버튼 클릭 -> 파이썬 실행 및 작업 시작 API 호출
-  // (API에서는 working === 0 인 레코드만 처리하도록 구현되어 있다고 가정)
+  // "시작" 버튼 클릭 시 API 호출 (파이썬 스크립트 실행 등)
   const handleStart = async () => {
     setErrorMessage("");
     setLoading(true);
@@ -43,7 +42,7 @@ export default function StartPage() {
       const res = await fetch("/api/automation/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // 선택한 필터 옵션를 body에 포함 (전체/실명/비실명)
+        // 선택한 필터 옵션을 body에 포함 (전체/실명/비실명)
         body: JSON.stringify({ filter: selectedFilter }),
       });
 
@@ -76,18 +75,25 @@ export default function StartPage() {
   // 각 레코드에 대해 카운트 현황 및 작업일수 현황 계산
   const renderTableRows = (records) =>
     records.map((record) => {
-      // 카운트현황: 현재 작업된 계정 수(current_count)/전체 계정 수(count)
+      // 카운트 현황: 현재 작업된 계정 수(current_count)/전체 게시글 수(count)
       const countStatus = `${record.current_count || 0}/${record.count}`;
 
-      // 작업일수현황: working이 1이고 working_day가 있으면 진행된 작업일수 계산 (첫날은 1부터 시작)
+      // 작업일수 현황 계산
       let workDayStatus = `0/${record.work_day}`;
       if (record.working === 1 && record.working_day) {
-        const startDate = new Date(record.working_day);
-        const today = new Date();
-        const diffTime = today - startDate;
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-        workDayStatus = `${diffDays}/${record.work_day}`;
+        // 카운트가 완료되었으면 (예: 2/2, 3/3 등) 작업일수도 완료된 게시글 수로 표시합니다.
+        if (record.current_count >= record.count) {
+          workDayStatus = `${record.count}/${record.work_day}`;
+        } else {
+          // 아직 카운트가 완료되지 않았다면, 날짜 차이를 계산합니다.
+          const startDate = new Date(record.working_day);
+          const today = new Date();
+          const diffTime = today - startDate;
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+          workDayStatus = `${diffDays}/${record.work_day}`;
+        }
       }
+
       return (
         <tr key={record.id}>
           <td>{record.id}</td>
@@ -103,8 +109,9 @@ export default function StartPage() {
   return (
     <div className="container" style={{ padding: "2rem" }}>
       <h1>작업 테이블 현황</h1>
-      {/* {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
-      필터 옵션 라디오 버튼 그룹
+      {/* 에러 메시지 또는 필터 옵션, 시작 버튼 관련 UI는 필요에 따라 주석 해제하거나 수정하세요. */}
+      {/*
+      {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
       <div style={{ marginBottom: "1rem" }}>
         <label style={{ marginRight: "1rem" }}>
           <input
@@ -143,7 +150,8 @@ export default function StartPage() {
         <button className="btn" onClick={handleStart}>
           시작
         </button>
-      )} */}
+      )}
+      */}
 
       <div style={{ marginTop: "2rem" }}>
         <h2>진행중인 테이블</h2>
@@ -161,8 +169,8 @@ export default function StartPage() {
                 <th>ID</th>
                 <th>플레이스 명</th>
                 <th>키워드</th>
-                <th>카운트현황</th>
-                <th>작업일수현황</th>
+                <th>카운트 현황</th>
+                <th>작업일수 현황</th>
                 <th>등록일시</th>
               </tr>
             </thead>
@@ -187,8 +195,8 @@ export default function StartPage() {
                 <th>ID</th>
                 <th>플레이스 명</th>
                 <th>키워드</th>
-                <th>카운트현황</th>
-                <th>작업일수현황</th>
+                <th>카운트 현황</th>
+                <th>작업일수 현황</th>
                 <th>등록일시</th>
               </tr>
             </thead>
