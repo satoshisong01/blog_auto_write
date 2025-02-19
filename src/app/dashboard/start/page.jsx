@@ -75,22 +75,18 @@ export default function StartPage() {
   // 각 레코드에 대해 카운트 현황 및 작업일수 현황 계산
   const renderTableRows = (records) =>
     records.map((record) => {
-      // 카운트 현황: 현재 작업된 계정 수(current_count)/전체 게시글 수(count)
+      // 카운트 현황: 현재 작업수(current_count)/목표 작업수(count)
       const countStatus = `${record.current_count || 0}/${record.count}`;
 
-      // 작업일수 현황 계산
+      // 작업일수 현황:
+      // - 작업이 완료된 경우(현재 작업수 >= 목표 작업수)는 work_day 그대로 표시 (예: 2/2)
+      // - 아직 완료되지 않은 경우에는 무조건 1/{work_day}로 표시 (예: 1/2)
       let workDayStatus = `0/${record.work_day}`;
       if (record.working === 1 && record.working_day) {
-        // 카운트가 완료되었으면 (예: 2/2, 3/3 등) 작업일수도 완료된 게시글 수로 표시합니다.
         if (record.current_count >= record.count) {
-          workDayStatus = `${record.count}/${record.work_day}`;
+          workDayStatus = `${record.work_day}/${record.work_day}`;
         } else {
-          // 아직 카운트가 완료되지 않았다면, 날짜 차이를 계산합니다.
-          const startDate = new Date(record.working_day);
-          const today = new Date();
-          const diffTime = today - startDate;
-          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-          workDayStatus = `${diffDays}/${record.work_day}`;
+          workDayStatus = `1/${record.work_day}`;
         }
       }
 
@@ -109,49 +105,7 @@ export default function StartPage() {
   return (
     <div className="container" style={{ padding: "2rem" }}>
       <h1>작업 테이블 현황</h1>
-      {/* 에러 메시지 또는 필터 옵션, 시작 버튼 관련 UI는 필요에 따라 주석 해제하거나 수정하세요. */}
-      {/*
-      {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
-      <div style={{ marginBottom: "1rem" }}>
-        <label style={{ marginRight: "1rem" }}>
-          <input
-            type="radio"
-            name="filter"
-            value="전체"
-            checked={selectedFilter === "전체"}
-            onChange={() => setSelectedFilter("전체")}
-          />
-          전체
-        </label>
-        <label style={{ marginRight: "1rem" }}>
-          <input
-            type="radio"
-            name="filter"
-            value="실명"
-            checked={selectedFilter === "실명"}
-            onChange={() => setSelectedFilter("실명")}
-          />
-          실명
-        </label>
-        <label>
-          <input
-            type="radio"
-            name="filter"
-            value="비실명"
-            checked={selectedFilter === "비실명"}
-            onChange={() => setSelectedFilter("비실명")}
-          />
-          비실명
-        </label>
-      </div>
-      {loading ? (
-        <p>작업 진행 중...</p>
-      ) : (
-        <button className="btn" onClick={handleStart}>
-          시작
-        </button>
-      )}
-      */}
+      {/* 에러 메시지, 필터 옵션 및 시작 버튼 관련 UI는 필요에 따라 사용하세요. */}
 
       <div style={{ marginTop: "2rem" }}>
         <h2>진행중인 테이블</h2>
