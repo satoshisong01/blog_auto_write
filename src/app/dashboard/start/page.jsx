@@ -110,7 +110,7 @@ export default function StartPage() {
       <h1>작업 테이블 현황</h1>
       {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
       {/* 필터 옵션 및 시작 버튼 UI */}
-      <div style={{ marginBottom: "1rem" }}>
+      {/* <div style={{ marginBottom: "1rem" }}>
         <label style={{ marginRight: "1rem" }}>
           <input
             type="radio"
@@ -148,7 +148,7 @@ export default function StartPage() {
         <button className="btn" onClick={handleStart}>
           시작
         </button>
-      )}
+      )} */}
 
       <div style={{ marginTop: "2rem" }}>
         <h2>진행중인 테이블</h2>
