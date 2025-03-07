@@ -53,7 +53,7 @@ export default function NoticeBoardPage() {
     )
   );
 
-  // 필터링 로직: 날짜와 플레이스 링크를 기준으로 필터링
+  // 필터링 로직: 날짜와 플레이스 링크를 기준으로 필터링 후 날짜 역순(최신순) 정렬
   useEffect(() => {
     const filtered = dashboardData.filter((item) => {
       const date = new Date(item.created_at);
@@ -78,6 +78,10 @@ export default function NoticeBoardPage() {
       }
       return match;
     });
+
+    // 날짜를 역순(최신순)으로 정렬
+    filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
     setFilteredData(filtered);
   }, [year, month, day, placeFilter, dashboardData]);
 
