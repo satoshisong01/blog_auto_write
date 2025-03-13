@@ -7,6 +7,7 @@ export default function StartPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("전체");
+  const [updating, setUpdating] = useState(false);
 
   // API에서 데이터를 불러와 상태에 저장하는 함수
   const fetchPlaceKeywords = async () => {
@@ -26,6 +27,28 @@ export default function StartPage() {
       console.error("네트워크 오류:", error);
       setErrorMessage("네트워크 오류 발생");
     }
+  };
+
+  // 정지 업데이트 버튼 클릭 핸들러
+  const handleUpdateSuspendedStatus = async () => {
+    setUpdating(true);
+    try {
+      const res = await fetch("/api/automation/updateSuspendedStatus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      if (res.ok) {
+        alert("정지 업데이트가 완료되었습니다.");
+      } else {
+        const errorData = await res.json();
+        alert("정지 업데이트 실패: " + errorData.message);
+      }
+    } catch (error) {
+      console.error("정지 업데이트 오류:", error);
+      alert("정지 업데이트 중 오류가 발생했습니다.");
+    }
+    setUpdating(false);
   };
 
   useEffect(() => {
@@ -104,6 +127,14 @@ export default function StartPage() {
 
       <div style={{ marginTop: "2rem" }}>
         <h2>진행중인 테이블</h2>
+        {/* 정지 업데이트 버튼 */}
+        <button
+          onClick={handleUpdateSuspendedStatus}
+          disabled={updating}
+          style={{ marginBottom: "1rem", backgroundColor: "pink" }}
+        >
+          {updating ? "업데이트 중..." : "정지 업데이트"}
+        </button>
         {workingKeywords.length === 0 ? (
           <p>진행중인 데이터가 없습니다.</p>
         ) : (

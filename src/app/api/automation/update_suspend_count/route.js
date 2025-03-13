@@ -6,7 +6,6 @@ export async function POST(request) {
     const [suspendedDashboardRecords] = await pool.query(
       "SELECT * FROM dashboard WHERE is_suspended = 1"
     );
-    console.log("Suspended Dashboard Records:", suspendedDashboardRecords); // 쿼리 결과 확인
 
     // 2. 각 dashboard 레코드에 대해 place_name을 기준으로 place_keywords 테이블에서 일치하는 place_link를 찾고
     for (const dashboardRecord of suspendedDashboardRecords) {
@@ -17,10 +16,6 @@ export async function POST(request) {
         "SELECT * FROM place_keywords WHERE place_link = ?",
         [place_name] // place_name을 place_link와 비교
       );
-      console.log(
-        `Place Keywords for place_name ${place_name}:`,
-        placeKeywords
-      ); // 쿼리 결과 확인
 
       // 4. 일치하는 place_keywords가 있다면, 해당 place_name에 대해 dashboard 레코드의 갯수 계산
       if (placeKeywords.length > 0) {
@@ -33,9 +28,6 @@ export async function POST(request) {
         for (const placeKeyword of placeKeywords) {
           const { id } = placeKeyword;
 
-          console.log(
-            `Updating suspend_count for place_name ${place_name} to ${count}`
-          );
           await pool.query(
             "UPDATE place_keywords SET suspend_count = ? WHERE id = ?",
             [count, id] // count 값을 suspend_count로 설정
