@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import * as XLSX from "xlsx"; // xlsx 라이브러리 임포트
 
 export default function NoticeBoardPage() {
   const [dashboardData, setDashboardData] = useState([]);
@@ -15,6 +16,9 @@ export default function NoticeBoardPage() {
   // 플레이스 링크 필터 (드롭다운)
   const [placeFilter, setPlaceFilter] = useState("");
 
+  // 정지 업데이트 버튼 관련 상태
+  const [updating, setUpdating] = useState(false);
+
   // dashboard 데이터를 불러오는 함수
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -26,7 +30,6 @@ export default function NoticeBoardPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        // data.dashboard에 dashboard 배열이 있다고 가정합니다.
         const dashboards = data.dashboard || [];
         setDashboardData(dashboards);
         setFilteredData(dashboards);
@@ -44,7 +47,50 @@ export default function NoticeBoardPage() {
     fetchDashboardData();
   }, []);
 
-  // dashboardData에서 플레이스 링크(place_name) 고유 목록 생성 (빈 문자열은 제외)
+  // 정지 업데이트 버튼 클릭 핸들러
+  const handleUpdateSuspendedStatus = async () => {
+    setUpdating(true);
+    try {
+      const res = await fetch("/api/automation/updateSuspendedStatus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      if (res.ok) {
+        alert("정지 업데이트가 완료되었습니다.");
+        fetchDashboardData(); // 데이터를 다시 불러옵니다.
+      } else {
+        const errorData = await res.json();
+        alert("정지 업데이트 실패: " + errorData.message);
+      }
+    } catch (error) {
+      console.error("정지 업데이트 오류:", error);
+      alert("정지 업데이트 중 오류가 발생했습니다.");
+    }
+    setUpdating(false);
+  };
+
+  // 필터링 로직
+  useEffect(() => {
+    const filtered = dashboardData.filter((item) => {
+      const date = new Date(item.created_at);
+      const itemYear = date.getFullYear().toString();
+      const itemMonth = (date.getMonth() + 1).toString().padStart(2, "0");
+      const itemDay = date.getDate().toString().padStart(2, "0");
+
+      let match = true;
+      if (year) match = match && itemYear === year;
+      if (month) match = match && itemMonth === month;
+      if (day) match = match && itemDay === day;
+      if (placeFilter) match = match && item.place_name === placeFilter;
+      return match;
+    });
+
+    filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    setFilteredData(filtered);
+  }, [year, month, day, placeFilter, dashboardData]);
+
+  // 플레이스명 필터 옵션 생성
   const uniquePlaceOptions = Array.from(
     new Set(
       dashboardData
@@ -53,37 +99,23 @@ export default function NoticeBoardPage() {
     )
   );
 
-  // 필터링 로직: 날짜와 플레이스 링크를 기준으로 필터링 후 날짜 역순(최신순) 정렬
-  useEffect(() => {
-    const filtered = dashboardData.filter((item) => {
-      const date = new Date(item.created_at);
-      const itemYear = date.getFullYear().toString();
-      // 월은 0부터 시작하므로 +1하고 두 자리 문자열로 변환
-      const itemMonth = (date.getMonth() + 1).toString().padStart(2, "0");
-      // 일 역시 두 자리 문자열
-      const itemDay = date.getDate().toString().padStart(2, "0");
+  // 엑셀 다운로드 함수
+  const handleDownloadExcel = () => {
+    // 엑셀에 포함할 데이터에서 필요한 필드만 선택하고 순서를 맞춤
+    const formattedData = filteredData.map((item) => ({
+      "네이버 아이디": item.naver_id,
+      "블로그 주소": item.blog_url,
+      플레이스명: item.place_name || "-", // place_name이 없을 경우 "-"로 대체
+      "사용된 키워드": item.used_keyword || "-", // used_keyword가 없을 경우 "-"로 대체
+      생성일: new Date(item.created_at).toLocaleString(), // 생성일 포맷팅
+    }));
 
-      let match = true;
-      if (year) {
-        match = match && itemYear === year;
-      }
-      if (month) {
-        match = match && itemMonth === month;
-      }
-      if (day) {
-        match = match && itemDay === day;
-      }
-      if (placeFilter) {
-        match = match && item.place_name === placeFilter;
-      }
-      return match;
-    });
-
-    // 날짜를 역순(최신순)으로 정렬
-    filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-    setFilteredData(filtered);
-  }, [year, month, day, placeFilter, dashboardData]);
+    // xlsx에서 다운로드할 워크시트 생성
+    const ws = XLSX.utils.json_to_sheet(formattedData); // 필터링된 데이터로 워크시트 생성
+    const wb = XLSX.utils.book_new(); // 새 워크북 생성
+    XLSX.utils.book_append_sheet(wb, ws, "Dashboard Data"); // 워크시트 추가
+    XLSX.writeFile(wb, "dashboard_data.xlsx"); // 엑셀 파일 다운로드
+  };
 
   return (
     <div className="container" style={{ padding: "2rem", maxWidth: "1500px" }}>
@@ -140,6 +172,27 @@ export default function NoticeBoardPage() {
               ))}
             </select>
           </div>
+
+          {/* 정지 업데이트 버튼 */}
+          <button
+            onClick={handleUpdateSuspendedStatus}
+            disabled={updating}
+            style={{ marginBottom: "1rem", backgroundColor: "pink" }}
+          >
+            {updating ? "업데이트 중..." : "정지 업데이트"}
+          </button>
+
+          {/* 엑셀 다운로드 버튼 */}
+          <button
+            onClick={handleDownloadExcel}
+            style={{
+              marginBottom: "1rem",
+              marginLeft: "1rem",
+              backgroundColor: "lightgreen",
+            }}
+          >
+            엑셀 다운로드
+          </button>
 
           {/* 필터링된 데이터 갯수 표시 */}
           <div style={{ marginBottom: "1rem" }}>
