@@ -17,12 +17,12 @@ export async function GET(request) {
     // 만약 maker 값이 "admin"이면 관리자이므로 모든 데이터를 불러옵니다.
     if (maker === "admin") {
       query =
-        "SELECT id, naver_id, naver_pw, maker, is_realname, created_at, money_count FROM registrations";
+        "SELECT id, naver_id, naver_pw, maker, is_realname, created_at, money_count, is_suspended FROM registrations";
       params = [];
     } else {
       // 일반 사용자의 경우, 본인의 데이터만 불러옵니다.
       query =
-        "SELECT id, naver_id, naver_pw, maker, is_realname, created_at, money_count FROM registrations WHERE maker = ?";
+        "SELECT id, naver_id, naver_pw, maker, is_realname, created_at, money_count, is_suspended FROM registrations WHERE maker = ?";
       params = [maker];
     }
 

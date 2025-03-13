@@ -317,7 +317,7 @@ export default function DashboardPage() {
 
       {/* 오른쪽 영역: 등록된 데이터 리스트 */}
       <div style={{ flex: 1 }}>
-        <h1>등록된 아이디 리스트</h1>
+        <h1>등록된 아이디 리스트 ({registrations.length}개)</h1>
         {registrations.length === 0 ? (
           <p>등록된 데이터가 없습니다.</p>
         ) : (
@@ -335,6 +335,7 @@ export default function DashboardPage() {
                 <th>Maker</th>
                 <th>실명/비실명</th>
                 <th>등록일시</th>
+                <th>정지</th>
                 <th>삭제</th>
               </tr>
             </thead>
@@ -347,6 +348,11 @@ export default function DashboardPage() {
                   <td>{reg.maker}</td>
                   <td>{reg.is_realname ? "실명" : "비실명"}</td>
                   <td>{new Date(reg.created_at).toLocaleString()}</td>
+                  <td
+                    style={{ color: reg.is_suspended === 1 ? "red" : "green" }}
+                  >
+                    {reg.is_suspended === 1 ? "정지" : "정상"}
+                  </td>
                   <td>
                     <button
                       type="button"

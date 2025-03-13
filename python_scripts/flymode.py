@@ -41,6 +41,7 @@ def set_airplane_mode(state=True):
     """
     비행기 모드를 설정합니다.
     state=True이면 켜고, False이면 끕니다.
+    데이터 상태도 해당 상태에 맞게 disable/enable 합니다.
     """
     if not is_device_connected():
         print("디바이스가 연결되어 있지 않습니다.")
@@ -49,14 +50,14 @@ def set_airplane_mode(state=True):
     # 비행기 모드 상태 설정
     value = '1' if state else '0'
     run_adb_command(['shell', 'settings', 'put', 'global', 'airplane_mode_on', value])
-
-    # 비행기 모드 라디오 설정 (기본값: default)
     run_adb_command(['shell', 'settings', 'put', 'global', 'airplane_mode_radios', 'default'])
 
-    # 관련 서비스 적용
-    run_adb_command(['shell', 'svc', 'wifi', 'disable' if state else 'enable'])
-    run_adb_command(['shell', 'svc', 'data', 'disable' if state else 'enable'])
-    run_adb_command(['shell', 'svc', 'bluetooth', 'disable' if state else 'enable'])
+    if state:
+        # 비행기 모드를 켤 때: 데이터 비활성화
+        run_adb_command(['shell', 'svc', 'data', 'disable'])
+    else:
+        # 비행기 모드를 끌 때: 데이터 활성화
+        run_adb_command(['shell', 'svc', 'data', 'enable'])
 
     print(f"비행기 모드 {'켰습니다' if state else '꺼졌습니다'}.")
 
@@ -67,7 +68,17 @@ def toggle_airplane_mode_once():
     set_airplane_mode(False)
 
 def main():
+    # 호출 시 인자: flymode.py [naver_id] [naver_pw]
+    if len(sys.argv) > 2:
+        naver_id = sys.argv[1]
+        naver_pw = sys.argv[2]
+        print(f"[flymode.py] 계정 {naver_id} IP 변경을 시작합니다.")
+    else:
+        print("[flymode.py] 계정 정보 인자 없이 실행됨")
+
     toggle_airplane_mode_once()
+    time.sleep(15)  # 작업이 끝난 후 15초 대기
+    print("[flymode.py] 완료")
 
 if __name__ == "__main__":
     main()
