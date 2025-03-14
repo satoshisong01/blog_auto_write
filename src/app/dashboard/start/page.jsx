@@ -150,7 +150,7 @@ export default function StartPage() {
                 <th>플레이스 명</th>
                 <th>키워드</th>
                 <th>카운트</th>
-                <th>정지카운트</th>
+                <th>정지카운트(누적)</th>
                 <th>작업일수</th>
                 <th>등록일시</th>
               </tr>
@@ -177,7 +177,7 @@ export default function StartPage() {
                 <th>플레이스 명</th>
                 <th>키워드</th>
                 <th>카운트</th>
-                <th>정지카운트</th>
+                <th>정지카운트(누적)</th>
                 <th>작업일수</th>
                 <th>등록일시</th>
               </tr>
