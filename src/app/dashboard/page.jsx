@@ -186,6 +186,40 @@ export default function DashboardPage() {
     }
   };
 
+  // 엑셀 다운로드 핸들러: 등록된 데이터를 엑셀 파일로 다운로드합니다.
+  const handleDownloadExcel = () => {
+    if (registrations.length === 0) {
+      alert("등록된 데이터가 없습니다.");
+      return;
+    }
+    // 원하는 형태로 데이터를 변환합니다.
+    const transformedData = registrations.map((reg) => ({
+      id: reg.id,
+      네이버아이디: reg.naver_id,
+      "네이버 비밀번호": reg.naver_pw,
+      Maker: reg.maker,
+      "실명/비실명": reg.is_realname ? "실명" : "비실명",
+      등록일: new Date(reg.created_at).toLocaleString(),
+      정지유무: reg.is_suspended === 1 ? "정지" : "정상",
+    }));
+
+    // header 옵션에 원하는 순서로 헤더를 지정합니다.
+    const worksheet = XLSX.utils.json_to_sheet(transformedData, {
+      header: [
+        "id",
+        "네이버아이디",
+        "네이버 비밀번호",
+        "Maker",
+        "실명/비실명",
+        "등록일",
+        "정지유무",
+      ],
+    });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Registrations");
+    XLSX.writeFile(workbook, "registrations.xlsx");
+  };
+
   // 컴포넌트가 마운트될 때 등록 데이터 불러오기
   useEffect(() => {
     fetchRegistrations();
@@ -318,6 +352,14 @@ export default function DashboardPage() {
       {/* 오른쪽 영역: 등록된 데이터 리스트 */}
       <div style={{ flex: 1 }}>
         <h1>등록된 아이디 리스트 ({registrations.length}개)</h1>
+        {/* 엑셀 다운로드 버튼 */}
+        <button
+          type="button"
+          onClick={handleDownloadExcel}
+          style={{ marginBottom: "1rem" }}
+        >
+          엑셀 다운로드
+        </button>
         {registrations.length === 0 ? (
           <p>등록된 데이터가 없습니다.</p>
         ) : (
